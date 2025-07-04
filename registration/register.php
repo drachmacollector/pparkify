@@ -30,12 +30,12 @@ function seedSlotsForDateRandomized($conn, string $date) {
         $totalSlots = (int)$row['total_slots'];
 
         // a) How many slots today? (8–11)
-        $numSlots = rand(8, 11);
+        $numSlots = rand(2, 11);
 
         // b) For each of those slots, pick availability 7..total_slots
         $slotValues = [];
         for ($i = 1; $i <= $numSlots; $i++) {
-            $slotValues[] = rand(7, max(7, $totalSlots));
+            $slotValues[] = rand(2, max(2, $totalSlots));
         }
         // c) Fill out the rest (up to 11) with 0
         for ($i = $numSlots + 1; $i <= 11; $i++) {
