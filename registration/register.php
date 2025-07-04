@@ -1,7 +1,5 @@
 <?php
-// ── AUTO‑SEED SLOTS FOR TODAY + NEXT WEEK ──────────────────────────────────────
-
-// 1. Connect to the database
+// ── AUTO‑SEED SLOTS FOR TODAY + NEXT WEEK (with randomness) ───────────────────
 $conn = new mysqli(
     "sql105.infinityfree.com",
     "if0_39017725",
@@ -12,41 +10,60 @@ if ($conn->connect_error) {
     die("DB Connection failed: " . $conn->connect_error);
 }
 
-// 2. Helper function: seed slots for a single date
-function seedSlotsForDate($conn, $date) {
-    // Set the user variable in MySQL
-    $set = $conn->prepare("SET @d = ?");
-    $set->bind_param("s", $date);
-    $set->execute();
-    $set->close();
+function seedSlotsForDateRandomized($conn, string $date) {
+    // 1) Get all spots NOT YET seeded for $date
+    $sql = "
+      SELECT id, total_slots
+      FROM parkingspots
+      WHERE id NOT IN (
+        SELECT area_id
+          FROM daily_slot_availability
+         WHERE date = '$date'
+      )
+    ";
+    $res = $conn->query($sql);
+    if (!$res) return;
 
-    // Insert new rows for any parkingspot that doesn't already have them on that date
-    $insert = $conn->prepare("
-        INSERT INTO daily_slot_availability (
-            area_id, date,
-            slot1, slot2, slot3, slot4, slot5, slot6,
-            slot7, slot8, slot9, slot10, slot11
-        )
-        SELECT
-            id, @d,
-            total_slots, total_slots, total_slots, total_slots, total_slots, total_slots,
-            total_slots, total_slots, total_slots, total_slots, total_slots
-        FROM parkingspots
-        WHERE id NOT IN (
-            SELECT area_id FROM daily_slot_availability WHERE date = @d
-        )
-    ");
-    $insert->execute();
-    $insert->close();
+    // 2) For each spot, build a randomized slots array and INSERT
+    while ($row = $res->fetch_assoc()) {
+        $areaId     = (int)$row['id'];
+        $totalSlots = (int)$row['total_slots'];
+
+        // a) How many slots today? (8–11)
+        $numSlots = rand(8, 11);
+
+        // b) For each of those slots, pick availability 7..total_slots
+        $slotValues = [];
+        for ($i = 1; $i <= $numSlots; $i++) {
+            $slotValues[] = rand(7, max(7, $totalSlots));
+        }
+        // c) Fill out the rest (up to 11) with 0
+        for ($i = $numSlots + 1; $i <= 11; $i++) {
+            $slotValues[] = 0;
+        }
+
+        // d) Build & run the INSERT
+        $cols  = implode(", ", array_map(fn($n) => "slot$n", range(1, 11)));
+        $vals  = implode(", ", array_map('intval', $slotValues));
+        $insert = "
+          INSERT INTO daily_slot_availability
+            (area_id, date, $cols)
+          VALUES
+            ($areaId, '$date', $vals)
+        ";
+        $conn->query($insert);
+    }
 }
 
-// 3. Seed for today + next 6 days
 $today = new DateTime('today');
 for ($i = 0; $i < 7; $i++) {
-    seedSlotsForDate($conn, $today->format('Y-m-d'));
+    $dt = $today->format('Y-m-d');
+    seedSlotsForDateRandomized($conn, $dt);
     $today->modify('+1 day');
 }
+// ──────────────────────────────────────────────────────────────────────────────
 ?>
+
 
 
 <!DOCTYPE html>
