@@ -1,3 +1,54 @@
+<?php
+// ── AUTO‑SEED SLOTS FOR TODAY + NEXT WEEK ──────────────────────────────────────
+
+// 1. Connect to the database
+$conn = new mysqli(
+    "sql105.infinityfree.com",
+    "if0_39017725",
+    "jeZyqYSlUAhhmM",
+    "if0_39017725_parkify_db"
+);
+if ($conn->connect_error) {
+    die("DB Connection failed: " . $conn->connect_error);
+}
+
+// 2. Helper function: seed slots for a single date
+function seedSlotsForDate($conn, $date) {
+    // Set the user variable in MySQL
+    $set = $conn->prepare("SET @d = ?");
+    $set->bind_param("s", $date);
+    $set->execute();
+    $set->close();
+
+    // Insert new rows for any parkingspot that doesn't already have them on that date
+    $insert = $conn->prepare("
+        INSERT INTO daily_slot_availability (
+            area_id, date,
+            slot1, slot2, slot3, slot4, slot5, slot6,
+            slot7, slot8, slot9, slot10, slot11
+        )
+        SELECT
+            id, @d,
+            total_slots, total_slots, total_slots, total_slots, total_slots, total_slots,
+            total_slots, total_slots, total_slots, total_slots, total_slots
+        FROM parkingspots
+        WHERE id NOT IN (
+            SELECT area_id FROM daily_slot_availability WHERE date = @d
+        )
+    ");
+    $insert->execute();
+    $insert->close();
+}
+
+// 3. Seed for today + next 6 days
+$today = new DateTime('today');
+for ($i = 0; $i < 7; $i++) {
+    seedSlotsForDate($conn, $today->format('Y-m-d'));
+    $today->modify('+1 day');
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
