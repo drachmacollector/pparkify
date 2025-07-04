@@ -1,0 +1,33 @@
+INSERT INTO daily_slot_availability (
+  area_id, date,
+  slot1, slot2, slot3, slot4, slot5, slot6,
+  slot7, slot8, slot9, slot10, slot11
+)
+SELECT 
+  ps.id AS area_id,
+  CURDATE() AS date,
+  ps.total_slots, ps.total_slots, ps.total_slots, ps.total_slots, ps.total_slots, ps.total_slots,
+  ps.total_slots, ps.total_slots, ps.total_slots, ps.total_slots, ps.total_slots
+FROM parkingspots ps
+WHERE ps.id NOT IN (
+  SELECT area_id FROM daily_slot_availability WHERE date = CURDATE()
+);
+
+
+by date
+-- Replace with the desired date
+SET @new_date = '2025-04-20';
+
+INSERT INTO daily_slot_availability (
+  area_id, date,
+  slot1, slot2, slot3, slot4, slot5, slot6,
+  slot7, slot8, slot9, slot10, slot11
+)
+SELECT 
+  id, @new_date,
+  total_slots, total_slots, total_slots, total_slots, total_slots, total_slots,
+  total_slots, total_slots, total_slots, total_slots, total_slots
+FROM parkingspots
+WHERE id NOT IN (
+  SELECT area_id FROM daily_slot_availability WHERE date = @new_date
+);

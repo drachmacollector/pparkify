@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Parkify - Find Parking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="userboard.css" />
+        <link rel="shortcut icon" href="../registration/car.ico" type="image/x-icon">
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Michroma&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body>
+  <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+  <df-messenger
+    intent="WELCOME"
+    chat-title="SPARKY"
+    agent-id="7b4d5039-7c3a-4761-92fd-661e5b734314"
+    language-code="en"
+  ></df-messenger>
+
+  <!-- Background Elements -->
+  <canvas id="particles"></canvas>
+  <div class="animated-bg"></div>
+  <div class="grid-lines"></div>
+
+  <div class="parkify-container">
+    <div class="search-glass">
+      <div class="input-row">
+        <div class="cyber-input-group">
+          <label for="locationInput"><i class="fas fa-map-marker-alt"></i> ENTER CITY/AREA</label>
+          <input type="text" id="locationInput" placeholder="E.g. Nagpur, Mumbai..." />
+          <div class="input-highlight"></div>
+        </div>
+        <div class="cyber-input-group">
+          <label for="datePicker"><i class="fas fa-calendar-alt"></i> SELECT DATE</label>
+          <input type="date" id="datePicker" />
+          <div class="input-highlight"></div>
+        </div>
+      </div>
+      <div class="scan">
+      <button class="cyber-button primary" onclick="searchLocation()">
+        <span class="button-text">SCAN AREA</span>
+      </button>
+      </div>
+    </div>
+
+    <div id="map" class="cyber-map"></div>
+  </div>
+
+  <div id="slot-panel" class="cyber-panel">
+    <div class="panel-header">
+      <h2><i class="fas fa-parking"></i> AVAILABLE SLOTS</h2>
+    </div>
+    <div id="slots" class="slot-grid"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="particles.js"></script>
+  <script>
+    // Your existing JavaScript code remains unchanged
+    let map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    function loadParkingSpots() {
+      fetch('get_parking_data.php')
+        .then(res => res.json())
+        .then(spots => {
+          spots.forEach(spot => {
+            const marker = L.marker([spot.lat, spot.lon]).addTo(map)
+              .bindPopup(`<b>${spot.name}</b><br>${spot.city}, ${spot.area}`)
+              .on('click', () => {
+                const date = document.getElementById("datePicker").value;
+                if (!date) return alert("Please select a date first");
+                fetch(`get_slots.php?area_id=${spot.id}&date=${date}`)
+                  .then(res => res.json())
+                  .then(slots => showSlotPanel(slots, spot));
+              });
+          });
+        });
+    }
+
+    function getSlotTiming(slotKey) {
+      const timings = {
+        slot1: "07:00 AM - 08:00 AM",
+        slot2: "08:00 AM - 09:00 AM",
+        slot3: "09:00 AM - 10:00 AM",
+        slot4: "10:00 AM - 11:00 AM",
+        slot5: "11:00 AM - 12:00 PM",
+        slot6: "12:00 PM - 01:00 PM",
+        slot7: "01:00 PM - 02:00 PM",
+        slot8: "02:00 PM - 03:00 PM",
+        slot9: "03:00 PM - 04:00 PM",
+        slot10: "04:00 PM - 05:00 PM",
+        slot11: "05:00 PM - 06:00 PM",
+        slot12: "06:00 PM - 07:00 PM"
+      };
+      return timings[slotKey] || "Unknown Time";
+    }
+
+    function showSlotPanel(slotData, spot) {
+      const panel = document.getElementById("slot-panel");
+      const slotsDiv = document.getElementById("slots");
+
+      slotsDiv.innerHTML = "";
+      for (let key in slotData) {
+        if (key.startsWith("slot") && slotData[key] > 0) {
+          const slotElement = document.createElement("div");
+          slotElement.className = "cyber-slot";
+          slotElement.innerHTML = `
+            <span class="slot-label">${key.toUpperCase()}</span>
+            <span class="slot-count">${slotData[key]} LEFT</span>
+            <div class="slot-tooltip">${getSlotTiming(key)}</div>
+          `;
+          
+          slotElement.onclick = () => bookSlot(spot, key, slotData[key]);
+          slotsDiv.appendChild(slotElement);
+        }
+      }
+
+      panel.classList.remove("active");
+      void panel.offsetWidth;
+      panel.classList.add("active");
+    }
+
+    function bookSlot(spot, slotKey, remaining) {
+      const date = document.getElementById("datePicker").value;
+      if (!date) {
+        alert("Please select a date first");
+        return;
+      }
+
+      const slotNumber = slotKey.replace("slot", "");
+
+      fetch("booking.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          area_id: spot.id,
+          slot: slotNumber,
+          date: date
+        })
+      })
+      .then(res => res.text())
+      .then(response => {
+        const redirectParams = new URLSearchParams({
+          name: spot.name,
+          area: spot.area,
+          city: spot.city,
+          slot: slotNumber,
+          date: date
+        });
+        window.location.href = `booking.php?${redirectParams.toString()}`;
+      })
+      .catch(err => {
+        console.error("Booking failed:", err);
+        alert("❌ Booking failed. Please try again.");
+      });
+    }
+
+    function searchLocation() {
+      const query = document.getElementById("locationInput").value;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length === 0) return alert("Location not found");
+          map.setView([data[0].lat, data[0].lon], 15);
+        });
+    }
+
+    loadParkingSpots();
+
+    document.getElementById("datePicker").addEventListener("change", function () {
+  const selectedDate = new Date(this.value);
+  const today = new Date();
+  
+  // Zero out time for accurate comparison
+  selectedDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  if (selectedDate < today) {
+    alert("❌ Invalid date selected. Please choose today or a future date.");
+    this.value = ""; // Reset invalid input
+  }
+});
+
+  </script>
+</body>
+</html>
