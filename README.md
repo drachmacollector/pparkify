@@ -3,7 +3,7 @@
 **Parkify** is a modern smart parking system designed to streamline the process of finding and booking parking spots.
 With a futuristic UI and interactive features, it helps users locate, reserve, and manage parking efficiently in real-time.
 
-### Check it out at : [text](https://parkify.great-site.net/)
+### Check it out at : [https://parkify.great-site.net/](https://parkify.great-site.net/)
 
 ---
 
