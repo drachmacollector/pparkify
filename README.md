@@ -58,6 +58,6 @@ With a futuristic UI and interactive features, it helps users locate, reserve, a
 
 ## 👨‍💻 Team Parkify
 
-- **Nakul Bhadade** – [drachmacollector](https://github.com/drachmacollector)  
+- **Nakul Bhadade** – [drachmacollector](https://nakul-web.netlify.app/)  
 
 ---
