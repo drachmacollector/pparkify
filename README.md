@@ -56,10 +56,6 @@ With a futuristic UI and interactive features, it helps users locate, reserve, a
 
 ## 👨‍💻 Team Parkify
 
-- **Lakshuki Hatwar** – [lakshuki63](https://github.com/lakshuki63)  
-- **Siddhi Dhoke** – [sidii1](https://github.com/sidii1)  
 - **Nakul Bhadade** – [drachmacollector](https://github.com/drachmacollector)  
-- **Ness Dubey** – [n3ssdub3y](https://github.com/n3ssdub3y)  
-- **Pranjal Bhagel** – [pranjalbaghel1343](https://github.com/pranjalbaghel1343)  
 
 ---
